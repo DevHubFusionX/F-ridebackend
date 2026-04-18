@@ -1,0 +1,52 @@
+<p style="margin: 0 0 24px; font-size: 16px; line-height: 1.65; color: rgba(28, 42, 60, 0.7); font-weight: 500;">
+  Hi <strong style="color: #1C2A3C;">{{name}}</strong>,
+</p>
+<p style="margin: 0 0 32px; font-size: 16px; line-height: 1.65; color: rgba(28, 42, 60, 0.7); font-weight: 500;">
+  We detected a new login to your F-ride account from a device or location we don't recognize.
+</p>
+
+<!-- LOGIN DETAILS -->
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; border: 1px solid rgba(28, 42, 60, 0.08); border-radius: 4px; overflow: hidden;">
+  <tr>
+    <td style="padding: 20px 24px; border-bottom: 1px solid rgba(28, 42, 60, 0.06);">
+      <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(28, 42, 60, 0.4); font-weight: 700;">Device</p>
+      <p style="margin: 0; font-size: 15px; color: #1C2A3C; font-weight: 500;">{{deviceDetails}}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 20px 24px; border-bottom: 1px solid rgba(28, 42, 60, 0.06);">
+      <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(28, 42, 60, 0.4); font-weight: 700;">Location</p>
+      <p style="margin: 0; font-size: 15px; color: #1C2A3C; font-weight: 500;">{{location}}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 20px 24px;">
+      <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(28, 42, 60, 0.4); font-weight: 700;">Time</p>
+      <p style="margin: 0; font-size: 15px; color: #1C2A3C; font-weight: 500;">{{time}}</p>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
+  <tr>
+    <td style="background-color: rgba(231, 111, 50, 0.05); border: 1px solid rgba(231, 111, 50, 0.1); border-radius: 4px; padding: 24px;">
+      <div style="margin-bottom: 8px;">
+        <span style="font-size: 20px; margin-right: 8px;">⚠️</span>
+        <strong style="font-size: 15px; color: #1C2A3C; font-weight: 700;">Was this you?</strong>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: rgba(28, 42, 60, 0.6);">
+        If you initiated this login, you can safely ignore this email. If you did not authorize this, please secure your account immediately.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="border-radius: 4px; background-color: #1C2A3C;">
+      <a href="{{resetPasswordUrl}}" style="display: inline-block; padding: 14px 32px; font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: -0.01em;">
+        Secure My Account
+      </a>
+    </td>
+  </tr>
+</table>

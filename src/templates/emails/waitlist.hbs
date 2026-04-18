@@ -1,0 +1,45 @@
+<p style="margin: 0 0 24px; font-size: 16px; line-height: 1.65; color: rgba(28, 42, 60, 0.7); font-weight: 500;">
+  Thanks for joining F-ride early access as a <strong style="color: #1C2A3C;">{{role}}</strong>.
+</p>
+
+<p style="margin: 0 0 24px; font-size: 16px; line-height: 1.65; color: rgba(28, 42, 60, 0.7); font-weight: 500;">
+  {{#if isDriver}}
+  We're building something special for drivers like you — a way to turn your daily commute into shared journeys with people heading the same direction. No detours, no hassle.
+  {{else}}
+  We're building something special for riders like you — a way to find people already going your way. No detours, just shared journeys that make sense.
+  {{/if}}
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
+  <tr>
+    <td style="background-color: rgba(231, 111, 50, 0.05); border: 1px solid rgba(231, 111, 50, 0.1); border-radius: 4px; padding: 24px;">
+      <div style="margin-bottom: 8px;">
+        <span style="font-size: 20px; margin-right: 8px;">🎉</span>
+        <strong style="font-size: 15px; color: #1C2A3C; font-weight: 700;">
+          {{#if isDriver}}Priority Access{{else}}First Ride Free{{/if}}
+        </strong>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: rgba(28, 42, 60, 0.6);">
+        {{#if isDriver}}
+        As an early driver, you'll get first access when we launch in your area.
+        {{else}}
+        As an early rider, your first trip is on us when F-ride goes live.
+        {{/if}}
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin: 0 0 32px; font-size: 16px; line-height: 1.65; color: rgba(28, 42, 60, 0.7); font-weight: 500;">
+  We'll email you at <strong style="color: #1C2A3C;">{{email}}</strong> as soon as F-ride launches.
+</p>
+
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="border-radius: 4px; background-color: #1C2A3C;">
+      <a href="{{learnMoreUrl}}" style="display: inline-block; padding: 14px 32px; font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: -0.01em;">
+        Learn More About F-ride
+      </a>
+    </td>
+  </tr>
+</table>

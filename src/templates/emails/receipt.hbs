@@ -1,0 +1,60 @@
+<p style="margin: 0 0 24px; font-size: 16px; line-height: 1.65; color: rgba(28, 42, 60, 0.7); font-weight: 500;">
+  Hi <strong style="color: #1C2A3C;">{{name}}</strong>, thanks for riding with F-ride. Here's the breakdown for your trip on {{date}}.
+</p>
+
+<!-- TRIP DETAILS -->
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; border: 1px solid rgba(28, 42, 60, 0.08); border-radius: 4px; overflow: hidden;">
+  <tr>
+    <td style="padding: 20px 24px; border-bottom: 1px solid rgba(28, 42, 60, 0.06);">
+      <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(28, 42, 60, 0.4); font-weight: 700;">Driver</p>
+      <p style="margin: 0; font-size: 15px; color: #1C2A3C; font-weight: 500;">
+        {{driverName}} <span style="color: rgba(28, 42, 60, 0.5); font-weight: 400; font-size: 14px;">({{vehicleModel}} &bull; {{vehiclePlate}})</span>
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 20px 24px; border-bottom: 1px solid rgba(28, 42, 60, 0.06);">
+      <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(28, 42, 60, 0.4); font-weight: 700;">Pickup</p>
+      <p style="margin: 0; font-size: 15px; color: #1C2A3C; line-height: 1.4;">{{pickupAddress}}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 20px 24px; border-bottom: 1px solid rgba(28, 42, 60, 0.06);">
+      <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(28, 42, 60, 0.4); font-weight: 700;">Dropoff</p>
+      <p style="margin: 0; font-size: 15px; color: #1C2A3C; line-height: 1.4;">{{dropoffAddress}}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 20px 24px; background-color: rgba(28, 42, 60, 0.02);">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td>
+            <p style="margin: 0; font-size: 15px; color: rgba(28, 42, 60, 0.6); font-weight: 600;">Total Fare</p>
+          </td>
+          <td align="right">
+            <p style="margin: 0; font-size: 24px; color: #1C2A3C; font-weight: 800;">{{currency}}{{fare}}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- CARBON OFFSET -->
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
+  <tr>
+    <td style="background-color: rgba(231, 111, 50, 0.05); border: 1px solid rgba(231, 111, 50, 0.1); border-radius: 4px; padding: 24px;">
+      <div style="margin-bottom: 8px;">
+        <span style="font-size: 20px; margin-right: 8px;">🌱</span>
+        <strong style="font-size: 15px; color: #1C2A3C; font-weight: 700;">Carbon Footprint Reduced</strong>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: rgba(28, 42, 60, 0.6);">
+        By sharing this journey, you saved an estimated <strong style="color: #1C2A3C;">{{carbonSaved}}kg</strong> of CO2 emissions.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin: 0; font-size: 13px; line-height: 1.6; color: rgba(28, 42, 60, 0.4); text-align: center;">
+  Need help with this trip? Dispute charges or contact support from your Trip History page.
+</p>
