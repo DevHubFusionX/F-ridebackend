@@ -28,6 +28,7 @@ app.use(cors({
     'http://127.0.0.1:3000',
     'https://devhubfusionx.github.io',
     'https://f-ride.vercel.app',
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
   ],
   credentials: true
 }));
