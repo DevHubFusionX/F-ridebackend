@@ -4,8 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "postinstall": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs');fs.cpSync('src/templates','dist/templates',{recursive:true})\"",
+    "postinstall": "tsc && node -e \"const fs=require('fs');fs.cpSync('src/templates','dist/templates',{recursive:true})\"",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
