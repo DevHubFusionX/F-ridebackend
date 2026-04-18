@@ -2,8 +2,9 @@ services:
   - type: web
     name: f-ridebackend
     runtime: node
+    region: oregon
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
