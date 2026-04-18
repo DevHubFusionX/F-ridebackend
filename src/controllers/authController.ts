@@ -310,7 +310,7 @@ export const updateProfile = async (req: any, res: Response) => {
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         // If changing email/phone, we might want to flag for re-verification
-        if ((field === 'email' || field === 'phone') && req.body[field] !== req.user[field]) {
+        if (((field as string) === 'email' || (field as string) === 'phone') && req.body[field] !== req.user[field]) {
            identityChanged = true;
         }
         updates[field] = req.body[field];

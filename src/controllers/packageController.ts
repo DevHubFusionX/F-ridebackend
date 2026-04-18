@@ -1,3 +1,4 @@
+import { type Request, type Response } from 'express';
 import Package from '../models/Package.js';
 import User from '../models/User.js';
 import { sendEmail } from '../services/emailService.js';
