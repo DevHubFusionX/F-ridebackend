@@ -9,6 +9,8 @@ export interface IUser extends Document {
   role: 'rider' | 'driver' | 'courier';
   isVerified: boolean;
   twoFactorEnabled: boolean;
+  isOnline: boolean;
+  destination?: string;
   otp?: string;
   otpExpires?: Date;
   profileImage?: string;
@@ -41,6 +43,8 @@ const UserSchema: Schema = new Schema({
   },
   isVerified: { type: Boolean, default: false },
   twoFactorEnabled: { type: Boolean, default: false },
+  isOnline: { type: Boolean, default: false },
+  destination: { type: String },
   otp: { type: String },
   otpExpires: { type: Date },
   profileImage: { type: String },

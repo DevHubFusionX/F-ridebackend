@@ -27,21 +27,35 @@ const getUser = (req: any) => req.user as { id: string; role: string };
  * @access  Private
  */
 export const getMatches = async (req: Request, res: Response) => {
-  const { role, lat, lng } = req.query;
+  const { role, destination } = req.query;
   const user = getUser(req);
 
-  console.log(`[TRIPS] getMatches — role: ${role}, user: ${user.id}, lat: ${lat}, lng: ${lng}`);
+  console.log(`[TRIPS] getMatches — role: ${role}, user: ${user.id}, destination: ${destination || 'any'}`);
 
   try {
     if (role === 'driver') {
-      // Driver is looking for pending rider trips
-      const pendingTrips = await Trip.find({ status: 'pending' })
+      // Driver sees only fresh pending trips (last 30 mins), optionally filtered by destination
+      const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+      const tripQuery: Record<string, unknown> = {
+        status: 'pending',
+        createdAt: { $gte: cutoff },
+      };
+
+      if (destination) {
+        const regex = new RegExp(destination as string, 'i');
+        tripQuery['$or'] = [
+          { 'dropoffLocation.address': regex },
+          { 'pickupLocation.address': regex },
+        ];
+      }
+
+      const pendingTrips = await Trip.find(tripQuery)
         .populate('rider', 'name email phone role rating tripsCount profileImage bio languages vehicle')
         .sort({ createdAt: -1 })
         .limit(20)
         .lean();
 
-      console.log(`[TRIPS] getMatches — found ${pendingTrips.length} pending trips for driver`);
+      console.log(`[TRIPS] getMatches — found ${pendingTrips.length} fresh pending trips for driver`);
 
       const partners = pendingTrips
         .filter((t) => t.rider && (t.rider as any)._id?.toString() !== user.id)
@@ -73,18 +87,23 @@ export const getMatches = async (req: Request, res: Response) => {
       return res.json({ data: partners });
     }
 
-    // Rider is looking for available drivers (users with driver role)
+    // Rider searching — find online drivers, optionally filtered by destination
     const driverQuery: Record<string, unknown> = {
       role: 'driver',
+      isOnline: true,
       _id: { $ne: user.id },
     };
 
+    if (destination) {
+      driverQuery['destination'] = new RegExp(destination as string, 'i');
+    }
+
     const drivers = await User.find(driverQuery)
-      .select('name email phone role rating tripsCount profileImage bio languages vehicle location isVerified')
+      .select('name email phone role rating tripsCount profileImage bio languages vehicle location isVerified destination')
       .limit(20)
       .lean();
 
-    console.log(`[TRIPS] getMatches — found ${drivers.length} drivers for rider`);
+    console.log(`[TRIPS] getMatches — found ${drivers.length} online drivers for rider (destination: ${destination || 'any'})`);
 
     const partners = drivers.map((match) => {
       const name = match.name || 'Anonymous Driver';
@@ -96,7 +115,7 @@ export const getMatches = async (req: Request, res: Response) => {
         distance: `${(Math.random() * 3 + 0.3).toFixed(1)}km away`,
         overlap: `${Math.floor(75 + Math.random() * 20)}% route overlap`,
         pickup: 'En route to you',
-        dropoff: 'Your destination',
+        dropoff: (match as any).destination || 'Your destination',
         color: ['#2D9CDB', '#E76F32', '#27AE60', '#8B5CF6'][Math.floor(Math.random() * 4)],
         rating: match.rating ?? 5.0,
         price: `₦${(800 + Math.random() * 1500).toFixed(0)}`,
@@ -267,6 +286,21 @@ export const tripAction = async (req: Request, res: Response) => {
           message: 'Trip cancelled',
           trip,
         });
+      }
+
+      // Driver goes online with a destination
+      case 'go_online': {
+        const { destination: dest } = req.body;
+        console.log(`[TRIPS] go_online — driver: ${user.id}, destination: ${dest}`);
+        await User.findByIdAndUpdate(user.id, { isOnline: true, destination: dest || '' });
+        return res.json({ success: true, message: 'You are now online' });
+      }
+
+      // Driver goes offline
+      case 'go_offline': {
+        console.log(`[TRIPS] go_offline — driver: ${user.id}`);
+        await User.findByIdAndUpdate(user.id, { isOnline: false, destination: '' });
+        return res.json({ success: true, message: 'You are now offline' });
       }
 
       default:
