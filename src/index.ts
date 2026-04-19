@@ -13,6 +13,17 @@ import notificationRoutes from './routes/notificationRoutes.js';
 // Load environment variables
 dotenv.config();
 
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('[BOOT] Starting F-ride backend...');
+console.log(`[BOOT] NODE_ENV     : ${process.env.NODE_ENV}`);
+console.log(`[BOOT] PORT         : ${process.env.PORT || 5000}`);
+console.log(`[BOOT] MONGODB_URI  : ${process.env.MONGODB_URI ? '✓ set' : '✗ MISSING'}`);
+console.log(`[BOOT] JWT_SECRET   : ${process.env.JWT_SECRET ? '✓ set' : '✗ MISSING'}`);
+console.log(`[BOOT] GMAIL_USER   : ${process.env.GMAIL_USER ? '✓ set' : '✗ MISSING'}`);
+console.log(`[BOOT] GMAIL_APP_PASS: ${process.env.GMAIL_APP_PASS ? '✓ set' : '✗ MISSING'}`);
+console.log(`[BOOT] FRONTEND_URL : ${process.env.FRONTEND_URL || '(not set)'}`);
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
 // Connect to Database
 connectDB();
 
@@ -22,28 +33,39 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // Middleware
 app.use(helmet());
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://devhubfusionx.github.io',
+  'https://f-ride.vercel.app',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+];
+console.log('[CORS] Allowed origins:', allowedOrigins);
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://devhubfusionx.github.io',
-    'https://f-ride.vercel.app',
-    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-  ],
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Render health checks)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`[CORS] Blocked request from origin: ${origin}`);
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
 }));
-if (isDev) {
-  app.use(morgan('dev'));
-}
+
+app.use(morgan(isDev ? 'dev' : 'combined'));
 app.use(express.json());
 
+// Request logger
 app.use((req: Request, res: Response, next) => {
   const start = process.hrtime.bigint();
+  console.log(`[REQ] ${req.method} ${req.originalUrl} — origin: ${req.headers.origin || 'none'}`);
   res.on('finish', () => {
     const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000;
-    if (process.env.PERF_LOG === 'true') {
-      console.log(`[PERF] ${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs.toFixed(2)}ms`);
-    }
+    console.log(`[RES] ${req.method} ${req.originalUrl} → ${res.statusCode} (${durationMs.toFixed(1)}ms)`);
   });
   next();
 });
@@ -75,16 +97,17 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
-// Error Handling (Basic)
-app.use((err: any, _req: Request, res: Response, _next: any) => {
+// Error Handling
+app.use((err: any, req: Request, res: Response, _next: any) => {
+  console.error(`[ERROR] ${req.method} ${req.originalUrl} — ${err.message}`);
   console.error(err.stack);
-  res.status(500).json({
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 });
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`[BOOT] 🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });

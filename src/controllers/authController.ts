@@ -8,8 +8,10 @@ import { sendEmail } from '../services/emailService.js';
 // @access  Public
 export const register = async (req: Request, res: Response) => {
   const { name, email, phone, role, password } = req.body;
+  console.log(`[AUTH] register attempt — email: ${email || 'none'}, phone: ${phone || 'none'}, role: ${role}`);
 
   if (!name || (!email && !phone) || !password) {
+    console.warn('[AUTH] register — missing required fields');
     return res.status(400).json({ message: 'Please provide name, contact, and password' });
   }
 
@@ -19,60 +21,47 @@ export const register = async (req: Request, res: Response) => {
     let user = await User.findOne(contactFilter);
     
     if (user && user.isVerified) {
+      console.warn(`[AUTH] register — already verified user: ${email || phone}`);
       return res.status(400).json({ message: 'User with this contact already exists. Please login.' });
     }
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     if (user) {
-      // User exists but is unverified: update their info and OTP
+      console.log(`[AUTH] register — updating unverified user: ${email || phone}`);
       user.name = name;
-      user.password = password; // This will trigger the pre-save hash hook
+      user.password = password;
       user.role = role || user.role;
       user.otp = otp;
       user.otpExpires = otpExpires;
       await user.save();
     } else {
-      // New user
-      user = new User({
-        name,
-        email,
-        phone,
-        role: role || 'rider',
-        password,
-        otp,
-        otpExpires,
-        isVerified: false,
-      });
+      console.log(`[AUTH] register — creating new user: ${email || phone}`);
+      user = new User({ name, email, phone, role: role || 'rider', password, otp, otpExpires, isVerified: false });
       await user.save();
     }
 
-    // Send OTP if email is provided
     if (email) {
       try {
+        console.log(`[AUTH] register — sending OTP email to ${email}`);
         await sendEmail(email, 'otp', { otp });
-        // Send waitlist email for non-riders (re-trigger if they just joined)
         if (role === 'driver' || role === 'courier') {
           await sendEmail(email, 'waitlist', { name });
         }
       } catch (err) {
-        console.error('Email sending failed in register:', err);
+        console.error('[AUTH] register — email sending failed:', err);
       }
     }
 
+    console.log(`[AUTH] register — success for ${email || phone}`);
     res.status(user.isNew ? 201 : 200).json({ 
       message: user.isNew ? 'Registration initiated. OTP sent.' : 'OTP resent. Please verify your account.',
-      debug_otp: process.env.NODE_ENV === 'development' ? otp : undefined 
+      debug_otp: process.env.NODE_ENV === 'development' ? otp : undefined,
     });
   } catch (error: any) {
-    console.error('Register error:', error);
-    res.status(500).json({ 
-      message: 'Server error', 
-      error: error.message,
-      stack: error.stack 
-    });
+    console.error('[AUTH] register — error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message, stack: error.stack });
   }
 };
 
@@ -82,56 +71,47 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   const { email, phone, password } = req.body;
   const contactFilter = phone ? { phone } : { email };
+  console.log(`[AUTH] login attempt — ${email || phone}`);
 
   if ((!email && !phone) || !password) {
+    console.warn('[AUTH] login — missing credentials');
     return res.status(400).json({ message: 'Please provide contact and password' });
   }
 
   try {
     const user = await User.findOne(contactFilter).select('+password');
     if (!user) {
+      console.warn(`[AUTH] login — user not found: ${email || phone}`);
       return res.status(404).json({ message: 'User not found' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      console.warn(`[AUTH] login — wrong password for: ${email || phone}`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if 2FA is required
     if (user.twoFactorEnabled) {
-      // Generate 6-digit OTP
+      console.log(`[AUTH] login — 2FA required for: ${email || phone}`);
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
       user.otp = otp;
       user.otpExpires = otpExpires;
       await user.save();
-
-      // Send OTP
       if (user.email) {
         try {
           await sendEmail(user.email, 'otp', { otp });
         } catch (err) {
-          console.error('Email sending failed in login:', err);
+          console.error('[AUTH] login — 2FA email failed:', err);
         }
       }
-
-      return res.status(200).json({ 
-        message: 'Password verified. 2FA OTP sent.',
-        requires2FA: true,
-        debug_otp: process.env.NODE_ENV === 'development' ? otp : undefined 
-      });
+      return res.status(200).json({ message: 'Password verified. 2FA OTP sent.', requires2FA: true, debug_otp: process.env.NODE_ENV === 'development' ? otp : undefined });
     }
 
-    // Direct Login (2FA Disabled)
-    // Trigger Security Alert email on successful login
+    console.log(`[AUTH] login — success for: ${email || phone}, role: ${user.role}`);
     if (user.email) {
-      sendEmail(user.email, 'security_alert', { 
-        name: user.name || 'User',
-        time: new Date().toLocaleString(),
-        device: req.headers['user-agent'] || 'Unknown Device'
-      }).catch(err => console.error('Security alert email failed', err));
+      sendEmail(user.email, 'security_alert', { name: user.name || 'User', time: new Date().toLocaleString(), device: req.headers['user-agent'] || 'Unknown Device' })
+        .catch(err => console.error('[AUTH] login — security alert email failed:', err));
     }
 
     res.status(200).json({
@@ -143,7 +123,7 @@ export const login = async (req: Request, res: Response) => {
       token: generateToken({ id: user._id.toString(), role: user.role }),
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[AUTH] login — error:', error);
     res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : String(error) });
   }
 };
@@ -183,22 +163,19 @@ export const requestOTP = async (req: Request, res: Response) => {
 // @access  Public
 export const joinWaitlist = async (req: Request, res: Response) => {
   const { email, role } = req.body;
+  console.log(`[AUTH] waitlist — email: ${email}, role: ${role}`);
 
   if (!email || !role) {
+    console.warn('[AUTH] waitlist — missing email or role');
     return res.status(400).json({ message: 'Please provide email and role' });
   }
 
   try {
-    await sendEmail(email, 'waitlist', {
-      email,
-      role,
-      isDriver: role === 'driver',
-      learnMoreUrl: 'https://frankride.com',
-    });
-
+    await sendEmail(email, 'waitlist', { email, role, isDriver: role === 'driver', learnMoreUrl: 'https://frankride.com' });
+    console.log(`[AUTH] waitlist — email sent to ${email}`);
     res.status(200).json({ message: 'Successfully joined the waitlist' });
   } catch (error) {
-    console.error('Waitlist error:', error);
+    console.error('[AUTH] waitlist — error:', error);
     res.status(500).json({ message: 'Failed to join waitlist' });
   }
 };
@@ -209,8 +186,10 @@ export const joinWaitlist = async (req: Request, res: Response) => {
 export const verifyOTP = async (req: Request, res: Response) => {
   const { phone, email, otp } = req.body;
   const contactFilter = phone ? { phone } : { email };
+  console.log(`[AUTH] verify-otp — ${email || phone}, otp: ${otp}`);
 
   if ((!phone && !email) || !otp) {
+    console.warn('[AUTH] verify-otp — missing contact or otp');
     return res.status(400).json({ message: 'Please provide contact and OTP' });
   }
 
@@ -256,9 +235,11 @@ export const verifyOTP = async (req: Request, res: Response) => {
     ).lean();
 
     if (!user) {
+      console.warn(`[AUTH] verify-otp — invalid/expired OTP for ${email || phone}`);
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
+    console.log(`[AUTH] verify-otp — success for ${email || phone}`);
     // Trigger Security Alert email on successful login
     if (user.email) {
       sendEmail(user.email, 'security_alert', { 
@@ -277,6 +258,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
       token: generateToken({ id: user._id.toString(), role: user.role }),
     });
   } catch (error) {
+    console.error('[AUTH] verify-otp — error:', error);
     res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : String(error) });
   }
 };

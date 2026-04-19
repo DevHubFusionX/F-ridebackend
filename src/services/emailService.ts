@@ -12,6 +12,8 @@ const transporter = nodemailer.createTransport({
 type EmailType = 'otp' | 'welcome' | 'waitlist' | 'review_pending' | 'approved' | 'receipt' | 'security_alert';
 
 export const sendEmail = async (to: string, templateType: EmailType, data: Record<string, any>) => {
+  console.log(`[MAIL] Preparing ${templateType} email to: ${to}`);
+
   const subjectMap: Record<EmailType, string> = {
     otp: `Your F-ride Verification Code: ${data.otp}`,
     welcome: `Welcome to the F-ride Network, ${data.name}`,
@@ -38,19 +40,22 @@ export const sendEmail = async (to: string, templateType: EmailType, data: Recor
   const htmlTemplate = renderEmailHtml(templateType, { ...data, subject, headerTitle });
 
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASS) {
-    console.log('-----------------------------------------');
-    console.log(`[MAIL MOCK] Sending ${templateType} to ${to}`);
-    console.log('-----------------------------------------');
+    console.warn(`[MAIL] GMAIL_USER or GMAIL_APP_PASS not set — mocking email send`);
+    console.log(`[MAIL MOCK] type=${templateType} to=${to}`);
     return { success: true, mocked: true };
   }
 
-  const info = await transporter.sendMail({
-    from: `"F-ride" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    html: htmlTemplate,
-  });
-
-  console.log(`[MAIL] Message sent: ${info.messageId}`);
-  return { success: true, messageId: info.messageId };
+  try {
+    const info = await transporter.sendMail({
+      from: `"F-ride" <${process.env.GMAIL_USER}>`,
+      to,
+      subject,
+      html: htmlTemplate,
+    });
+    console.log(`[MAIL] ✓ Sent ${templateType} to ${to} — messageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error(`[MAIL] ✗ Failed to send ${templateType} to ${to}:`, err);
+    throw err;
+  }
 };
