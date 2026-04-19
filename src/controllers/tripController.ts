@@ -288,6 +288,26 @@ export const tripAction = async (req: Request, res: Response) => {
         });
       }
 
+      // Verify PIN before starting trip
+      case 'verify_pin': {
+        const { pin: enteredPin } = req.body;
+        console.log(`[TRIPS] verify_pin — user: ${user.id}, role: ${role}, pin: ${enteredPin}`);
+
+        const tripQuery = role === 'driver'
+          ? { driver: user.id, status: 'accepted', pin: enteredPin }
+          : { rider: user.id, status: 'accepted', pin: enteredPin };
+
+        const trip = await Trip.findOne(tripQuery).sort({ createdAt: -1 });
+
+        if (!trip) {
+          console.warn(`[TRIPS] verify_pin — invalid PIN for user: ${user.id}`);
+          return res.status(400).json({ message: 'Invalid PIN. Please check the code and try again.' });
+        }
+
+        console.log(`[TRIPS] verify_pin — PIN verified for trip: ${trip._id}`);
+        return res.json({ success: true, message: 'PIN verified', tripId: trip._id });
+      }
+
       // Driver goes online with a destination
       case 'go_online': {
         const { destination: dest } = req.body;
