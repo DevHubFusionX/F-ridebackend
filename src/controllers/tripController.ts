@@ -30,72 +30,88 @@ export const getMatches = async (req: Request, res: Response) => {
   const { role, lat, lng } = req.query;
   const user = getUser(req);
 
-  try {
-    // Determine which role we're looking for (opposite of the requester)
-    const targetRole = role === 'driver' ? 'rider' : 'driver';
+  console.log(`[TRIPS] getMatches — role: ${role}, user: ${user.id}, lat: ${lat}, lng: ${lng}`);
 
-    // Base query: verified users of the opposite role
-    const query: Record<string, unknown> = {
-      role: targetRole,
-      isVerified: true,
+  try {
+    if (role === 'driver') {
+      // Driver is looking for pending rider trips
+      const pendingTrips = await Trip.find({ status: 'pending' })
+        .populate('rider', 'name email phone role rating tripsCount profileImage bio languages vehicle')
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+
+      console.log(`[TRIPS] getMatches — found ${pendingTrips.length} pending trips for driver`);
+
+      const partners = pendingTrips
+        .filter((t) => t.rider && (t.rider as any)._id?.toString() !== user.id)
+        .map((t) => {
+          const match = t.rider as any;
+          const name = match.name || 'Anonymous Rider';
+          const initials = name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
+          return {
+            _id: match._id.toString(),
+            tripId: t._id.toString(),
+            name,
+            initials,
+            distance: 'Nearby',
+            overlap: `${Math.floor(75 + Math.random() * 20)}% route overlap`,
+            pickup: t.pickupLocation.address,
+            dropoff: t.dropoffLocation.address,
+            color: ['#2D9CDB', '#E76F32', '#27AE60', '#8B5CF6'][Math.floor(Math.random() * 4)],
+            rating: match.rating ?? 5.0,
+            price: `₦${t.fare.toFixed(0)}`,
+            bio: match.bio,
+            role: 'rider',
+            verified: match.isVerified ?? false,
+            trips: match.tripsCount ?? 0,
+            languages: match.languages,
+            vehicle: match.vehicle,
+          };
+        });
+
+      return res.json({ data: partners });
+    }
+
+    // Rider is looking for available drivers (users with driver role)
+    const driverQuery: Record<string, unknown> = {
+      role: 'driver',
       _id: { $ne: user.id },
     };
 
-    // If coordinates provided, use geo-spatial query (within 10km)
-    if (lat && lng) {
-      query['location'] = {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [parseFloat(lng as string), parseFloat(lat as string)],
-          },
-          $maxDistance: 10_000, // 10 km
-        },
-      };
-    }
-
-    const matches = await User.find(query)
-      .select('name email phone role rating tripsCount profileImage bio languages vehicle location')
+    const drivers = await User.find(driverQuery)
+      .select('name email phone role rating tripsCount profileImage bio languages vehicle location isVerified')
       .limit(20)
       .lean();
 
-    // Transform to the shape the frontend PartnerSchema expects
-    const partners = matches.map((match) => {
-      const name = match.name || 'Anonymous User';
-      const initials = name
-        .split(' ')
-        .map((w: string) => w[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
+    console.log(`[TRIPS] getMatches — found ${drivers.length} drivers for rider`);
 
+    const partners = drivers.map((match) => {
+      const name = match.name || 'Anonymous Driver';
+      const initials = name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
       return {
         _id: match._id.toString(),
         name,
         initials,
-        distance: match.location?.coordinates
-          ? `${(Math.random() * 3 + 0.3).toFixed(1)}km away`
-          : 'Nearby',
+        distance: `${(Math.random() * 3 + 0.3).toFixed(1)}km away`,
         overlap: `${Math.floor(75 + Math.random() * 20)}% route overlap`,
-        pickup: 'Calculating...',
-        dropoff: 'Calculating...',
+        pickup: 'En route to you',
+        dropoff: 'Your destination',
         color: ['#2D9CDB', '#E76F32', '#27AE60', '#8B5CF6'][Math.floor(Math.random() * 4)],
         rating: match.rating ?? 5.0,
         price: `₦${(800 + Math.random() * 1500).toFixed(0)}`,
         bio: match.bio,
-        role: match.role,
-        verified: true,
+        role: 'driver',
+        verified: match.isVerified ?? false,
         trips: match.tripsCount ?? 0,
-        joinedDate: match.joinedDate
-          ? new Date(match.joinedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-          : undefined,
         languages: match.languages,
         vehicle: match.vehicle,
       };
     });
 
-    res.json({ data: partners });
+    return res.json({ data: partners });
   } catch (error) {
+    console.error('[TRIPS] getMatches error:', error);
     res.status(500).json({
       message: 'Failed to fetch matches',
       error: error instanceof Error ? error.message : String(error),
@@ -117,12 +133,14 @@ export const getMatches = async (req: Request, res: Response) => {
 export const tripAction = async (req: Request, res: Response) => {
   const { action, role, id, pickup, dropoff, fare } = req.body;
   const user = getUser(req);
+  console.log(`[TRIPS] tripAction — action: ${action}, role: ${role}, user: ${user.id}`);
 
   try {
     switch (action) {
-      /* ── Create a new trip request ── */
       case 'create': {
+        console.log(`[TRIPS] create — pickup: ${pickup?.address}, dropoff: ${dropoff?.address}, fare: ${fare}`);
         if (!pickup?.address || !pickup?.coordinates || !dropoff?.address || !dropoff?.coordinates) {
+          console.warn('[TRIPS] create — missing pickup/dropoff');
           return res.status(400).json({ message: 'Pickup and dropoff locations are required' });
         }
 
