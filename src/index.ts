@@ -71,6 +71,10 @@ app.use((req: Request, res: Response, next) => {
 });
 
 // Routes
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({ message: 'F-ride API is live 🚀', docs: '/api/health' });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/packages', packageRoutes);
